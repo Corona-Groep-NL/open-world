@@ -1287,7 +1287,7 @@ class OW_Admin {
 
 	public function handle_lang_action(): void {
 		// Support both POST (add forms) and GET (nonce action links)
-		check_admin_referer( 'ow_lang_action' );
+		check_admin_referer( 'ow_lang_action', 'ow_lang_nonce' );
 		if ( ! current_user_can( 'manage_options' ) ) wp_die( 'Unauthorized' );
 
 		$action = sanitize_key( $_REQUEST['ow_action'] ?? '' );
