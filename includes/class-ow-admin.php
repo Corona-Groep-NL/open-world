@@ -1286,66 +1286,109 @@ class OW_Admin {
 
 
 	public function handle_lang_action(): void {
-		// Support both POST (add forms) and GET (nonce action links)
-		check_admin_referer( 'ow_lang_action' );
-		if ( ! current_user_can( 'manage_options' ) ) wp_die( 'Unauthorized' );
+    // Support both POST (add forms) and GET (nonce action links)
+    $is_post = strtoupper( $_SERVER['REQUEST_METHOD'] ?? '' ) === 'POST';
 
-		$action = sanitize_key( $_REQUEST['ow_action'] ?? '' );
-		$lang   = sanitize_key( $_REQUEST['lang_code'] ?? '' );
+    if ( $is_post ) {
+        check_admin_referer( 'ow_lang_action', 'ow_lang_nonce' );
+    } else {
+        check_admin_referer( 'ow_lang_action' );
+    }
 
-		switch ( $action ) {
-			case 'set_default':
-				OW_Languages::set_default( $lang );
-				OW_Router::flush_rules();
-				/* translators: %s: language code */
-				set_transient( 'ow_lang_notice', sprintf( __( 'Default URL language set to: %s', 'open-world' ), $lang ), 60 );
-				break;
+    if ( ! current_user_can( 'manage_options' ) ) {
+        wp_die( 'Unauthorized' );
+    }
 
-			case 'set_source':
-				OW_Languages::set_source( $lang );
-				/* translators: %s: language code */
-				set_transient( 'ow_lang_notice', sprintf( __( 'Source language set to: %s. Re-scan strings if content language changed.', 'open-world' ), $lang ), 60 );
-				break;
+    $action = sanitize_key( $_REQUEST['ow_action'] ?? '' );
+    $lang   = sanitize_key( $_REQUEST['lang_code'] ?? '' );
 
-			case 'set_fallback':
-				OW_Languages::set_fallback( $lang );
-				/* translators: %s: language code */
-				set_transient( 'ow_lang_notice', sprintf( __( 'Fallback language changed to: %s', 'open-world' ), $lang ), 60 );
-				break;
+    switch ( $action ) {
+        case 'set_default':
+            OW_Languages::set_default( $lang );
+            OW_Router::flush_rules();
+            /* translators: %s: language code */
+            set_transient(
+                'ow_lang_notice',
+                sprintf( __( 'Default URL language set to: %s', 'open-world' ), $lang ),
+                60
+            );
+            break;
 
-			case 'remove':
-				OW_Languages::remove( $lang );
-				/* translators: %s: language code */
-				set_transient( 'ow_lang_notice', sprintf( __( 'Language removed: %s', 'open-world' ), $lang ), 60 );
-				break;
+        case 'set_source':
+            OW_Languages::set_source( $lang );
+            /* translators: %s: language code */
+            set_transient(
+                'ow_lang_notice',
+                sprintf( __( 'Source language set to: %s. Re-scan strings if content language changed.', 'open-world' ), $lang ),
+                60
+            );
+            break;
 
-			case 'add_known':
-				$locale = sanitize_text_field( wp_unslash( $_POST['known_locale'] ?? '' ) );
-				$known  = OW_Languages::known_languages();
-				if ( isset( $known[ $locale ] ) ) {
-					$code = OW_Languages::locale_to_code( $locale );
-					OW_Languages::add( $code, $locale, $known[ $locale ]['name'], $known[ $locale ]['flag'] );
-					/* translators: %s: language name */
-					set_transient( 'ow_lang_notice', sprintf( __( 'Language added: %s', 'open-world' ), $known[ $locale ]['name'] ), 60 );
-				}
-				break;
+        case 'set_fallback':
+            OW_Languages::set_fallback( $lang );
+            /* translators: %s: language code */
+            set_transient(
+                'ow_lang_notice',
+                sprintf( __( 'Fallback language changed to: %s', 'open-world' ), $lang ),
+                60
+            );
+            break;
 
-			case 'add_custom':
-				$code   = sanitize_key( wp_unslash( $_POST['lang_code'] ?? '' ) );
-				$locale = sanitize_text_field( wp_unslash( $_POST['locale'] ?? '' ) );
-				$name   = sanitize_text_field( wp_unslash( $_POST['lang_name'] ?? '' ) );
-				$flag   = sanitize_text_field( wp_unslash( $_POST['flag'] ?? '' ) );
-				if ( $code && $locale && $name ) {
-					OW_Languages::add( $code, $locale, $name, $flag );
-					/* translators: %s: language name */
-					set_transient( 'ow_lang_notice', sprintf( __( 'Language added: %s', 'open-world' ), $name ), 60 );
-				}
-				break;
-		}
+        case 'remove':
+            OW_Languages::remove( $lang );
+            /* translators: %s: language code */
+            set_transient(
+                'ow_lang_notice',
+                sprintf( __( 'Language removed: %s', 'open-world' ), $lang ),
+                60
+            );
+            break;
 
-		wp_safe_redirect( admin_url( 'admin.php?page=ow-languages' ) );
-		exit;
-	}
+        case 'add_known':
+            $locale = sanitize_text_field( wp_unslash( $_POST['known_locale'] ?? '' ) );
+            $known  = OW_Languages::known_languages();
+
+            if ( isset( $known[ $locale ] ) ) {
+                $code = OW_Languages::locale_to_code( $locale );
+
+                OW_Languages::add(
+                    $code,
+                    $locale,
+                    $known[ $locale ]['name'],
+                    $known[ $locale ]['flag']
+                );
+
+                /* translators: %s: language name */
+                set_transient(
+                    'ow_lang_notice',
+                    sprintf( __( 'Language added: %s', 'open-world' ), $known[ $locale ]['name'] ),
+                    60
+                );
+            }
+            break;
+
+        case 'add_custom':
+            $code   = sanitize_key( wp_unslash( $_POST['lang_code'] ?? '' ) );
+            $locale = sanitize_text_field( wp_unslash( $_POST['locale'] ?? '' ) );
+            $name   = sanitize_text_field( wp_unslash( $_POST['lang_name'] ?? '' ) );
+            $flag   = sanitize_text_field( wp_unslash( $_POST['flag'] ?? '' ) );
+
+            if ( $code && $locale && $name ) {
+                OW_Languages::add( $code, $locale, $name, $flag );
+
+                /* translators: %s: language name */
+                set_transient(
+                    'ow_lang_notice',
+                    sprintf( __( 'Language added: %s', 'open-world' ), $name ),
+                    60
+                );
+            }
+            break;
+    }
+
+    wp_safe_redirect( admin_url( 'admin.php?page=ow-languages' ) );
+    exit;
+}
 
 	// ── Admin POST: Scan strings ──────────────────────────────────────────────
 
